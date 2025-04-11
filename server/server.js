@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const configureMongoose = require('./config/mongoose');
 const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/posts');
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -16,6 +17,7 @@ configureMongoose();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
