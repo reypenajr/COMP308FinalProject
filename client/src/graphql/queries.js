@@ -119,3 +119,75 @@ export const GET_BUSINESS_POSTS = gql`
     }
   }
 `;
+
+
+// Get All Events Query
+export const GET_EVENTS = gql`
+  query GetEvents {
+    getEvents {
+      id
+      title
+      description
+      location
+      date
+      createdBy {
+        id
+        firstName
+        lastName
+      }
+      createdByName
+      createdAt
+    }
+  }
+`;
+
+// Get Single Event Query
+export const GET_EVENT = gql`
+  query GetEvent($id: ID!) {
+    getEvent(id: $id) {
+      id
+      title
+      description
+      location
+      date
+      createdBy {
+        id
+        firstName
+        lastName
+      }
+      createdByName
+      createdAt
+    }
+  }
+`;
+
+export const GET_ORGANIZER_EVENTS = gql`
+  query GetOrganizerEvents {
+    getOrganizerEvents{
+      id
+      title
+      description
+      location
+      date
+      createdBy {
+        id
+        firstName
+        lastName
+      }
+      createdByName
+      createdAt
+    }
+  }
+`;
+export const GET_VOLUNTEERS = gql`
+  query GetVolunteers {
+    getVolunteers {
+      id
+      firstName
+      lastName
+      email
+      role
+      createdAt
+    }
+  }
+`;

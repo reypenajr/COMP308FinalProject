@@ -116,3 +116,31 @@ export const ANALYZE_SENTIMENT = gql`
     analyzeSentiment(text: $text)
   }
 `;
+
+export const CREATE_EVENT = gql`
+  mutation CreateEvent($input: CreateEventInput!) {
+    createEvent(input: $input) {
+      id
+      title
+      description
+      location
+      date
+      createdBy {
+        id
+        firstName
+        lastName
+      }
+      createdByName
+      createdAt
+    }
+  }
+`;
+
+export const PREDICT_EVENT_TIMING = gql`
+  mutation PredictEventTiming($eventId: ID!) {
+    predictEventTiming(eventId: $eventId) {
+      eventId
+      predictedTiming
+    }
+  }
+`;

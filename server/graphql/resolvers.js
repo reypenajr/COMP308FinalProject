@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Post = require('../models/Post');
+const Event = require('../models/Event');
 const { AuthenticationError, UserInputError, ForbiddenError } = require('apollo-server-express');
 
 // Generate JWT token
@@ -110,6 +111,58 @@ const resolvers = {
         };
       } catch (err) {
         throw new Error('Error fetching post');
+      }
+    },
+
+    // Get all events
+    getEvents: async () => {
+      try {
+        const events = await Event.find().sort({ createdAt: -1 });
+        return events.map(event => ({
+          id: event._id,
+          ...event._doc,
+          createdAt: event.createdAt.toISOString()
+        }));
+      } catch (err) {
+        throw new Error('Error fetching events');
+      }
+    },
+    
+
+    getOrganizerEvents: async (_, __, context) => {
+      const user = await getAuthenticatedUser(context);
+    
+      // Only allow organizers to fetch their own events
+      if (user.role !== 'CommunityOrganizer') {
+        throw new ForbiddenError('Only organizers can view their events.');
+      }
+    
+      try {
+        const events = await Event.find({ createdBy: user._id }).sort({ createdAt: -1 });
+        return events.map(event => ({
+          id: event._id,
+          ...event._doc,
+          createdAt: event.createdAt.toISOString(),
+        }));
+      } catch (err) {
+        throw new Error('Error fetching organizer events');
+      }
+    },
+
+    // Fetch a single event by ID
+    getEvent: async (_, { id }) => {
+      try {
+        const event = await Event.findById(id);
+        if (!event) {
+          throw new Error('Event not found');
+        }
+        return {
+          id: event._id,
+          ...event._doc,
+          createdAt: event.createdAt.toISOString()
+        };
+      } catch (err) {
+        throw new Error('Error fetching event');
       }
     }
   },
@@ -298,45 +351,115 @@ const resolvers = {
       }
     },
     
-    // Volunteer for a help request
+    // Volunteer for a help request    
     volunteerForHelpRequest: async (_, { postId }, context) => {
+      const user = await getAuthenticatedUser(context);
+      const post = await Post.findById(postId);
+    
+      if (!post) throw new Error('Post not found');
+      if (post.category !== 'Help Request') {
+        throw new UserInputError('Can only volunteer for Help Request posts');
+      }
+    
+      if (!post.helpRequest) {
+        post.helpRequest = { status: 'Open', volunteers: [] };
+      }
+    
+      const userIdStr = user._id.toString();
+      if (post.helpRequest.volunteers.includes(userIdStr)) {
+        throw new UserInputError('You have already volunteered');
+      }
+    
+      post.helpRequest.volunteers.push(userIdStr);
+      await post.save();
+    
+      return {
+        id: post._id,
+        ...post._doc
+      };
+    },
+
+    //Create an event
+    createEvent: async (_, { input }, context) => {
+      try {
+        const user = await getAuthenticatedUser(context);
+        const { title, description, location, date } = input;
+  
+        const newEvent = new Event({
+          title,
+          description,
+          location,
+          date,
+          createdBy: user._id,
+          createdByName: `${user.firstName} ${user.lastName}`,
+        });
+  
+        await newEvent.save();
+  
+        return {
+          id: newEvent._id,
+          title: newEvent.title,
+          description: newEvent.description,
+          location: newEvent.location,
+          date: newEvent.date.toISOString(),
+          createdBy: newEvent.createdBy,
+          createdByName: newEvent.createdByName,
+          createdAt: newEvent.createdAt.toISOString(),
+        };
+      } catch (err) {
+        throw new Error('Error creating event');
+      }
+    },
+
+    // Update an existing event
+    updateEvent: async (_, { id, input }, context) => {
       try {
         const user = await getAuthenticatedUser(context);
         
-        const post = await Post.findById(postId);
-        if (!post) {
-          throw new Error('Post not found');
+        const event = await Event.findById(id);
+        if (!event) {
+          throw new Error('Event not found');
         }
-        
-        if (post.category !== 'Help Request') {
-          throw new UserInputError('Can only volunteer for Help Request posts');
+
+        if (event.createdBy.toString() !== user._id.toString()) {
+          throw new ForbiddenError('Not authorized to update this event');
         }
-        
-        if (post.helpRequest.volunteers.includes(user._id)) {
-          throw new UserInputError('You have already volunteered for this request');
-        }
-        
-        post.helpRequest.volunteers.push(user._id);
-        
-        if (post.helpRequest.status === 'Open') {
-          post.helpRequest.status = 'In Progress';
-        }
-        
-        await post.save();
-        
+
+        if (input.title) event.title = input.title;
+        if (input.description) event.description = input.description;
+        if (input.location) event.location = input.location;
+        if (input.date) event.date = new Date(input.date);
+
+        await event.save();
+
         return {
-          id: post._id,
-          ...post._doc,
-          author: {
-            id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role
-          }
+          id: event._id,
+          ...event._doc,
+          createdAt: event.createdAt.toISOString()
         };
       } catch (err) {
-        throw new Error('Error volunteering for help request: ' + err.message);
+        throw new Error('Error updating event');
+      }
+    },
+
+    // Delete an event
+    deleteEvent: async (_, { id }, context) => {
+      try {
+        const user = await getAuthenticatedUser(context);
+
+        const event = await Event.findById(id);
+        if (!event) {
+          throw new Error('Event not found');
+        }
+
+        if (event.createdBy.toString() !== user._id.toString()) {
+          throw new ForbiddenError('Not authorized to delete this event');
+        }
+
+        await Event.findByIdAndDelete(id);
+        return true;
+      } catch (err) {
+        throw new Error('Error deleting event');
       }
     }
   },
@@ -367,6 +490,28 @@ const resolvers = {
       } catch (err) {
         console.error('Error fetching author data:', err);
         throw new Error('Error fetching author data');
+      }
+    }
+  },
+  
+  Event: {
+    // Resolve createdBy field to fetch the full User data
+    createdBy: async (parent) => {
+      try {
+        const user = await User.findById(parent.createdBy);
+        if (!user) {
+          throw new Error('User not found');
+        }
+        return {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt.toISOString()
+        };
+      } catch (err) {
+        throw new Error('Error fetching user for event');
       }
     }
   }
