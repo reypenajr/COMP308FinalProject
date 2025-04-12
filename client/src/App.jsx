@@ -19,7 +19,9 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Home from './components/Home';
 import ResidentPosts from './components/ResidentPosts';
+import CommunityOrganizerPosts from './components/CommunityOrgPosts';
 import CreatePost from './components/CreatePost';
+import CreateEvent from './components/CreateEvent';
 
 function App() {
   // Check if user is authenticated by looking for token in localStorage
@@ -71,7 +73,9 @@ function App() {
           <Route path="register" element={<Register />} /> {/* Register route */}
           <Route path="dashboard" element={<Dashboard />} /> {/* Dashboard route */}
           <Route path="posts" element={<ResidentPosts />} /> {/* Posts route */}
+          <Route path="events" element={<CommunityOrganizerPosts />} /> {/* Events route */}
           <Route path="create-post" element={<CreatePost />} /> {/* Create post route */}
+          <Route path="create-event" element={<CreateEvent />} /> {/* Create event route */}
         </Routes>
       </div>
     </Router>

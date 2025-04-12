@@ -1,4 +1,4 @@
-const { gql } = require('apollo-server-express');
+const { gql } = require("apollo-server-express");
 
 const typeDefs = gql`
   type User {
@@ -75,6 +75,11 @@ const typeDefs = gql`
     getPosts: [Post!]!
     getPostsByCategory(category: String!): [Post!]!
     getPost(id: ID!): Post
+    getEvents: [Event!]!
+    getEvent(id: ID!): Event
+    events: [Event]
+    getOrganizerEvents: [Event]
+    getVolunteers: [User]
   }
 
   type Mutation {
@@ -87,7 +92,32 @@ const typeDefs = gql`
     updatePost(id: ID!, input: UpdatePostInput!): Post!
     deletePost(id: ID!): Boolean!
     volunteerForHelpRequest(postId: ID!): Post!
+    createEvent(input: CreateEventInput!): Event!
+    updateEvent(id: ID!, input: CreateEventInput!): Event!
+    deleteEvent(id: ID!): Boolean!
+
   }
+
+  type Event {
+    id: ID!
+    title: String!
+    description: String!
+    location: String!
+    date: String!
+    createdBy: User!
+    createdByName: String!
+    createdAt: String!
+  }
+
+  input CreateEventInput {
+    title: String!
+    description: String!
+    location: String!
+    date: String!
+    createdBy: String
+  }
+
+
 `;
 
 module.exports = typeDefs;

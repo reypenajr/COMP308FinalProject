@@ -5,6 +5,40 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const router = express.Router();
 
+
+// Authentication middleware to verify JWT token
+const auth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log("No token provided");
+      return res.status(401).json({ message: 'Access denied. No token provided' });
+    }
+
+    // Log the token being received to debug
+    console.log("Received Token:", token);
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded Token:", decoded);  // Log the decoded token
+
+    // Attach user information to the request
+    req.user = await User.findById(decoded.id);
+    if (!req.user) {
+      console.log("User not found");
+      throw new Error('User not found');
+    }
+
+    req.token = token;
+    next(); // Proceed to the next middleware/route handler
+  } catch (error) {
+    console.error('Authorization error:', error);
+    res.status(401).json({ message: 'Not authorized' });
+  }
+};
+
+
 // Register a new user
 router.post('/register', async (req, res) => {
   const { firstName, lastName, email, password, role } = req.body;
@@ -58,4 +92,4 @@ router.post('/login', async (req, res) => {
   });
 });
 
-module.exports = router;
+module.exports = { router, auth };
