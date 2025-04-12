@@ -7,7 +7,7 @@ const PostSchema = new mongoose.Schema({
   category: { 
     type: String, 
     required: true, 
-    enum: ['News/Discussion', 'Help Request', 'Emergency Alert'] 
+    enum: ['News/Discussion', 'Help Request', 'Emergency Alert', 'Business'] 
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
@@ -27,6 +27,20 @@ const PostSchema = new mongoose.Schema({
   helpRequest: {
     status: { type: String, default: 'Open', enum: ['Open', 'In Progress', 'Fulfilled'] },
     volunteers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  },
+  businessInfo: {
+    name: { type: String },
+    description: { type: String },
+    deals: [{ type: String }],
+    image: { type: String },
+    reviews: [{
+      reviewId: { type: String },
+      text: { type: String },
+      rating: { type: Number, min: 1, max: 5 },
+      authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      authorName: { type: String },
+      createdAt: { type: String }
+    }]
   }
 });
 

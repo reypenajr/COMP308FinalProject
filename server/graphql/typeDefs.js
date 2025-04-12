@@ -36,7 +36,26 @@ const typeDefs = gql`
     updatedAt: String!
     emergency: Emergency
     helpRequest: HelpRequest
+    businessInfo: BusinessInfo
   }
+
+  type BusinessReview {
+    reviewId: ID!
+    text: String!
+    rating: Int!
+    authorId: ID!
+    authorName: String!
+    createdAt: String
+  }
+
+  type BusinessInfo {
+    name: String
+    description: String
+    deals: [String]
+    image: String
+    reviews: [BusinessReview]
+  }
+
 
   input RegisterInput {
     firstName: String!
@@ -56,6 +75,16 @@ const typeDefs = gql`
     content: String!
     category: String!
     severity: String
+    businessName: String
+    businessDescription: String
+    businessDeals: [String]
+    businessImage: String
+  }
+  
+  input ReviewInput {
+    postId: ID!
+    text: String!
+    rating: Int!
   }
 
   input UpdatePostInput {
@@ -65,6 +94,10 @@ const typeDefs = gql`
     severity: String
     resolved: Boolean
     status: String
+    businessName: String
+    businessDescription: String
+    businessDeals: [String]
+    businessImage: String
   }
 
   type Query {
@@ -80,6 +113,8 @@ const typeDefs = gql`
     events: [Event]
     getOrganizerEvents: [Event]
     getVolunteers: [User]
+    getAllPosts: [Post!]!
+    getBusinessPosts: [Post!]!
   }
 
   type Mutation {
@@ -95,7 +130,8 @@ const typeDefs = gql`
     createEvent(input: CreateEventInput!): Event!
     updateEvent(id: ID!, input: CreateEventInput!): Event!
     deleteEvent(id: ID!): Boolean!
-
+    analyzeSentiment(text: String!): String!
+    addReview(input: ReviewInput!): Post!
   }
 
   type Event {

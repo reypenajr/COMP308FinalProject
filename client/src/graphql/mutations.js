@@ -50,6 +50,12 @@ export const CREATE_POST = gql`
         status
         volunteers
       }
+      businessInfo {
+        name
+        description
+        deals
+        image
+      }
       author {
         id
         firstName
@@ -78,6 +84,12 @@ export const UPDATE_POST = gql`
       helpRequest {
         status
         volunteers
+      }
+      businessInfo {
+        name
+        description
+        deals
+        image
       }
       author {
         id
@@ -114,6 +126,27 @@ export const VOLUNTEER_FOR_HELP_REQUEST = gql`
 export const ANALYZE_SENTIMENT = gql`
   mutation AnalyzeSentiment($text: String!) {
     analyzeSentiment(text: $text)
+  }
+`;
+
+export const ADD_REVIEW = gql`
+  mutation AddReview($input: ReviewInput!) {
+    addReview(input: $input) {
+      id
+      title
+      category
+      businessInfo {
+        name
+        reviews {
+          reviewId
+          text
+          rating
+          authorId
+          authorName
+          createdAt
+        }
+      }
+    }
   }
 `;
 

@@ -18,8 +18,9 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Home from './components/Home';
-import ResidentPosts from './components/ResidentPosts';
+import CommunityPosts from './components/ResidentPosts';
 import CommunityOrganizerPosts from './components/CommunityOrgPosts';
+import BusinessPosts from './components/BusinessPosts';
 import CreatePost from './components/CreatePost';
 import CreateEvent from './components/CreateEvent';
 
@@ -72,7 +73,7 @@ function App() {
           <Route path="login" element={<Login />} /> {/* Login route */}
           <Route path="register" element={<Register />} /> {/* Register route */}
           <Route path="dashboard" element={<Dashboard />} /> {/* Dashboard route */}
-          <Route path="posts" element={<ResidentPosts />} /> {/* Posts route */}
+          <Route path="posts" element={<CommunityPosts />} /> {/* Community Posts route */}
           <Route path="events" element={<CommunityOrganizerPosts />} /> {/* Events route */}
           <Route path="create-post" element={<CreatePost />} /> {/* Create post route */}
           <Route path="create-event" element={<CreateEvent />} /> {/* Create event route */}

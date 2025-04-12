@@ -44,10 +44,12 @@ const getAuthenticatedUser = async (context) => {
   }
 };
 
-// Check if user is a resident
-const checkIsResident = (user) => {
-  if (user.role !== 'Resident') {
-    throw new ForbiddenError('Access denied. Only Residents can perform this action.');
+// Check for valid post creation role
+const checkValidPostCreator = (user, category) => {
+  if (category === 'Business' && user.role !== 'BusinessOwner') {
+    throw new ForbiddenError('Access denied. Only Business Owners can create business posts.');
+  } else if (category !== 'Business' && user.role !== 'Resident') {
+    throw new ForbiddenError('Access denied. Only Residents can create community posts.');
   }
 };
 
@@ -66,10 +68,15 @@ const resolvers = {
       };
     },
     
-    // Get all posts
+    // Get all posts (for residents only)
     getPosts: async () => {
       try {
-        const posts = await Post.find().sort({ createdAt: -1 });
+        const posts = await Post.find({ 
+          $or: [
+            { 'category': { $ne: 'Business' } }
+          ]
+        }).sort({ createdAt: -1 });
+        
         return posts.map(post => ({
           id: post._id,
           ...post._doc,
@@ -78,6 +85,45 @@ const resolvers = {
         }));
       } catch (err) {
         throw new Error('Error fetching posts');
+      }
+    },
+    
+    // Get all posts regardless of role
+    getAllPosts: async (_, __, context) => {
+      try {
+        const user = await getAuthenticatedUser(context);
+        const posts = await Post.find().sort({ createdAt: -1 });
+        
+        return posts.map(post => ({
+          id: post._id,
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
+        }));
+      } catch (err) {
+        throw new Error('Error fetching all posts');
+      }
+    },
+    
+    // Get business posts
+    getBusinessPosts: async (_, __, context) => {
+      try {
+        const user = await getAuthenticatedUser(context);
+        
+        // Get business posts from the database
+        const posts = await Post.find({ 
+          category: 'Business',
+          author: user._id 
+        }).sort({ createdAt: -1 });
+        
+        return posts.map(post => ({
+          id: post._id,
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
+        }));
+      } catch (err) {
+        throw new Error('Error fetching business posts');
       }
     },
     
@@ -239,9 +285,14 @@ const resolvers = {
     createPost: async (_, { input }, context) => {
       try {
         const user = await getAuthenticatedUser(context);
-        checkIsResident(user);
+        const { title, content, category, severity, businessName, businessDescription, businessDeals, businessImage } = input;
         
-        const { title, content, category, severity } = input;
+        // Check if the user role is appropriate for the post type
+        if (category === 'Business' && user.role !== 'BusinessOwner') {
+          throw new ForbiddenError('Only business owners can create business posts');
+        } else if (category !== 'Business' && user.role === 'BusinessOwner') {
+          throw new ForbiddenError('Business owners can only create business posts');
+        }
         
         const post = new Post({
           title,
@@ -257,6 +308,16 @@ const resolvers = {
         
         if (category === 'Help Request') {
           post.helpRequest = { status: 'Open', volunteers: [] };
+        }
+        
+        if (category === 'Business' && user.role === 'BusinessOwner') {
+          post.businessInfo = { 
+            name: businessName || title, 
+            description: businessDescription || content,
+            deals: businessDeals || [],
+            image: businessImage || null,
+            reviews: []
+          };
         }
         
         await post.save();
@@ -461,6 +522,86 @@ const resolvers = {
       } catch (err) {
         throw new Error('Error deleting event');
       }
+    },
+    
+    // Add sentiment analysis resolver
+    analyzeSentiment: async (_, { text }) => {
+      try {
+        // This is a mock implementation - in a real app, you'd use a sentiment analysis API or library
+        const words = text.toLowerCase().split(/\s+/);
+        const positiveWords = ['good', 'great', 'excellent', 'amazing', 'love', 'best', 'wonderful', 'fantastic'];
+        const negativeWords = ['bad', 'poor', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'disappointing'];
+        
+        let positiveCount = 0;
+        let negativeCount = 0;
+        
+        words.forEach(word => {
+          if (positiveWords.includes(word)) positiveCount++;
+          if (negativeWords.includes(word)) negativeCount++;
+        });
+        
+        if (positiveCount > negativeCount) return 'Positive';
+        if (negativeCount > positiveCount) return 'Negative';
+        return 'Neutral';
+      } catch (err) {
+        throw new Error('Error analyzing sentiment');
+      }
+    },
+    
+    // Add a review to a business post
+    addReview: async (_, { input }, context) => {
+      try {
+        const user = await getAuthenticatedUser(context);
+        const { postId, text, rating } = input;
+        
+        // Find the post
+        const post = await Post.findById(postId);
+        if (!post) {
+          throw new Error('Post not found');
+        }
+        
+        // Check if it's a business post
+        if (post.category !== 'Business') {
+          throw new UserInputError('Can only review business posts');
+        }
+        
+        // Create a random review ID (without using mongoose.Types.ObjectId)
+        const reviewId = Math.random().toString(36).substring(2, 15) + 
+                        Math.random().toString(36).substring(2, 15);
+        
+        // Create the review
+        // Format date for consistency
+        const now = new Date();
+        const formattedDate = now.toISOString();
+        
+        // Create the review with a properly formatted date string
+        const review = {
+          reviewId,
+          text,
+          rating,
+          authorId: user._id,
+          authorName: `${user.firstName} ${user.lastName}`,
+          createdAt: formattedDate
+        };
+        
+        // Initialize reviews array if it doesn't exist
+        if (!post.businessInfo.reviews) {
+          post.businessInfo.reviews = [];
+        }
+        
+        // Add the review to the post
+        post.businessInfo.reviews.push(review);
+        await post.save();
+        
+        return {
+          id: post._id,
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
+        };
+      } catch (err) {
+        throw new Error('Error adding review: ' + err.message);
+      }
     }
   },
   
@@ -513,7 +654,8 @@ const resolvers = {
       } catch (err) {
         throw new Error('Error fetching user for event');
       }
-    }
+    },
+    
   }
 };
 

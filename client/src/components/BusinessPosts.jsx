@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { GET_BUSINESS_POSTS } from '../graphql/queries';
 import { ANALYZE_SENTIMENT } from '../graphql/mutations';
 
@@ -23,7 +23,7 @@ function BusinessPosts() {
     }
 
     const user = JSON.parse(userData);
-    if (user.role !== 'Business') {
+    if (user.role !== 'BusinessOwner') {
       navigate('/dashboard');
       return;
     }
