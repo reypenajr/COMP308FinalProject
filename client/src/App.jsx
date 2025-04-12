@@ -18,10 +18,20 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Home from './components/Home';
+import ResidentPosts from './components/ResidentPosts';
+import CreatePost from './components/CreatePost';
 
 function App() {
-  // Mock authentication check (replace with actual logic)
-  const isAuthenticated = false;  // Replace with real authentication logic
+  // Check if user is authenticated by looking for token in localStorage
+  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
+  
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    window.location.href = '/';
+  };
 
   return (
     <Router>
@@ -44,7 +54,7 @@ function App() {
               ) : (
                 <>
                   <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-                  <Nav.Link as={Link} to="/logout" onClick={() => console.log('Logging out')}>Logout</Nav.Link>
+                  <Nav.Link as={Link} to="/" onClick={handleLogout}>Logout</Nav.Link>
                 </>
               )}
             </Nav>
@@ -60,6 +70,8 @@ function App() {
           <Route path="login" element={<Login />} /> {/* Login route */}
           <Route path="register" element={<Register />} /> {/* Register route */}
           <Route path="dashboard" element={<Dashboard />} /> {/* Dashboard route */}
+          <Route path="posts" element={<ResidentPosts />} /> {/* Posts route */}
+          <Route path="create-post" element={<CreatePost />} /> {/* Create post route */}
         </Routes>
       </div>
     </Router>
