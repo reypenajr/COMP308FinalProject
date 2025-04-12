@@ -1,3 +1,4 @@
+// App.jsx
 import './App.css';
 import React from 'react';
 import {
@@ -7,13 +8,11 @@ import {
   Routes
 } from "react-router-dom";
 
-// Import necessary components from React-Bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import Container from 'react-bootstrap/Container';
 
-// Import your custom components
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
@@ -25,10 +24,8 @@ import CreatePost from './components/CreatePost';
 import CreateEvent from './components/CreateEvent';
 
 function App() {
-  // Check if user is authenticated by looking for token in localStorage
   const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
-  
-  // Logout function
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -38,17 +35,13 @@ function App() {
 
   return (
     <Router>
-      {/* Navbar integrated directly in App.jsx */}
       <Navbar bg="primary" variant="dark" expand="lg">
         <Container>
           <Navbar.Brand href="/">Community App</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="mr-auto">
-              {/* Always show Home link */}
+            <Nav className="me-auto">
               <Nav.Link as={Link} to="/">Home</Nav.Link>
-
-              {/* Show Login and Register if not authenticated */}
               {!isAuthenticated ? (
                 <>
                   <Nav.Link as={Link} to="/login">Login</Nav.Link>
@@ -65,18 +58,17 @@ function App() {
         </Container>
       </Navbar>
 
-      {/* Routes for different pages */}
       <div>
         <Routes>
-          <Route index element={<Home />} /> {/* Home route */}
-          <Route path="home" element={<Home />} /> {/* Home route */}
-          <Route path="login" element={<Login />} /> {/* Login route */}
-          <Route path="register" element={<Register />} /> {/* Register route */}
-          <Route path="dashboard" element={<Dashboard />} /> {/* Dashboard route */}
-          <Route path="posts" element={<CommunityPosts />} /> {/* Community Posts route */}
-          <Route path="events" element={<CommunityOrganizerPosts />} /> {/* Events route */}
-          <Route path="create-post" element={<CreatePost />} /> {/* Create post route */}
-          <Route path="create-event" element={<CreateEvent />} /> {/* Create event route */}
+          <Route index element={<Home />} />
+          <Route path="home" element={<Home />} />
+          <Route path="login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+          <Route path="register" element={<Register />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="posts" element={<CommunityPosts />} />
+          <Route path="events" element={<CommunityOrganizerPosts />} />
+          <Route path="create-post" element={<CreatePost />} />
+          <Route path="create-event" element={<CreateEvent />} />
         </Routes>
       </div>
     </Router>

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useMutation } from "@apollo/client";
 import { CREATE_EVENT } from "../graphql/mutations";
 import { GET_EVENTS } from "../graphql/queries";
+import { predictEventDate } from "../utils/predictDate"; // Adjust path if needed
+import { suggestVolunteers } from "../utils/aiHelpers";
 
 function CreateEvent() {
   const [title, setTitle] = useState("");
@@ -11,6 +13,7 @@ function CreateEvent() {
   const [date, setDate] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [volunteers, setVolunteers] = useState("");
 
   useEffect(() => {
     // Check if user is logged in
@@ -43,51 +46,90 @@ function CreateEvent() {
   });
 
   const handleSubmit = async (e) => {
-    e.preventDefault();  // Prevent default form submission
-  
+    e.preventDefault(); // Prevent default form submission
+
     setError(""); // Reset any previous errors
-  
+
     try {
       // Log the value of the date before processing
       console.log("Date value:", date);
-  
+
       // Check if date is empty
       if (!date) {
         throw new Error("Please select a date.");
       }
-  
+
       // Check if the date is in a valid format
       const datePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
       if (!datePattern.test(date)) {
-        throw new Error("Invalid date format. Please use the correct date/time format.");
+        throw new Error(
+          "Invalid date format. Please use the correct date/time format."
+        );
       }
-  
+
       // Try to create a Date object
       const validDate = new Date(date);
       if (isNaN(validDate)) {
         throw new Error("Invalid date format");
       }
-  
+
       const eventData = {
         title,
         description,
         location,
-        date: validDate.toISOString(),  // Ensure the date is in ISO string format
+        date: validDate.toISOString(), // Ensure the date is in ISO string format
       };
-  
+
       // Call your GraphQL mutation here and pass eventData
       await createEvent({
         variables: { input: eventData },
       });
-  
     } catch (err) {
       setError(err.message || "Failed to create event");
       console.error("Error creating event:", err);
     }
   };
-  
-  
-  
+
+  const handleSuggestDate = async () => {
+    try {
+      if (!title || !description) {
+        setError(
+          "Please enter title and description for AI to suggest a date."
+        );
+        return;
+      }
+
+      const aiDate = await predictEventDate(title, description);
+
+      // Optional: validate format
+      const datePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+      if (!datePattern.test(aiDate)) {
+        throw new Error("AI returned an invalid date format.");
+      }
+
+      setDate(aiDate);
+      setError(""); // Clear error
+    } catch (err) {
+      setError(err.message || "Failed to suggest date using AI.");
+    }
+  };
+
+  const handleSuggestVolunteers = async () => {
+    try {
+      if (!title || !description) {
+        setError(
+          "Please enter title and description for AI to suggest volunteers."
+        );
+        return;
+      }
+
+      const suggested = await suggestVolunteers(title, description);
+      setVolunteers(suggested);
+      setError(""); // Clear any previous errors
+    } catch (err) {
+      setError(err.message || "Failed to suggest volunteers using AI.");
+    }
+  };
 
   return (
     <div className="container mt-4">
@@ -141,6 +183,14 @@ function CreateEvent() {
         </div>
 
         <div className="mb-3">
+          <button
+            type="button"
+            className="btn btn-info me-2"
+            onClick={handleSuggestDate}
+          >
+            Suggest Date with AI
+          </button>
+
           <button type="submit" className="btn btn-primary">
             Create Event
           </button>
@@ -150,6 +200,24 @@ function CreateEvent() {
             onClick={() => navigate("/events")}
           >
             Cancel
+          </button>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Suggested Volunteers</label>
+          <textarea
+            className="form-control"
+            rows="2"
+            value={volunteers}
+            onChange={(e) => setVolunteers(e.target.value)}
+            placeholder="AI suggested roles will appear here"
+            disabled
+          />
+          <button
+            type="button"
+            className="btn btn-outline-success mt-2"
+            onClick={handleSuggestVolunteers}
+          >
+            Add Volunteers using AI
           </button>
         </div>
       </form>
