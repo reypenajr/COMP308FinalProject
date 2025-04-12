@@ -1,7 +1,7 @@
 // src/utils/aiHelpers.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI("AIzaSyCQmkukcqfO54bX_KBy5NFy4dZoAwgLkwc"); 
+const genAI = new GoogleGenerativeAI("API_KEY_HERE"); 
 export const predictEventDate = async (title, description) => {
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
