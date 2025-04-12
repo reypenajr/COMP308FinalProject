@@ -100,3 +100,22 @@ export const GET_POST = gql`
     }
   }
 `;
+
+//get businessposts (new)
+export const GET_BUSINESS_POSTS = gql`
+  query GetBusinessPosts {
+    getBusinessPosts {
+      id
+      name
+      description
+      image
+      deals
+      createdAt
+      reviews {
+        id
+        text
+        authorName
+      }
+    }
+  }
+`;
