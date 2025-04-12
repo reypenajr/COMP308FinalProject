@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+import { REGISTER_USER } from '../graphql/mutations';
 
 function Register() {
   const [firstName, setFirstName] = useState('');
@@ -11,24 +12,35 @@ function Register() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const [register, { loading }] = useMutation(REGISTER_USER, {
+    onCompleted: () => {
+      // Redirect to login page after successful registration
+      navigate('/login');
+    },
+    onError: (error) => {
+      setError(error.message || 'Registration failed');
+      console.error('Registration error:', error);
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
-        firstName,
-        lastName,
-        email,
-        password,
-        role
+      await register({ 
+        variables: { 
+          input: {
+            firstName,
+            lastName,
+            email,
+            password,
+            role
+          } 
+        } 
       });
-      
-      // Redirect to login page after successful registration
-      navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-      console.error('Registration error:', err);
+      // Error is handled in onError callback
     }
   };
 
@@ -90,7 +102,13 @@ function Register() {
             <option value="CommunityOrganizer">Community Organizer</option>
           </select>
         </div>
-        <button type="submit" className="btn btn-primary">Register</button>
+        <button 
+          type="submit" 
+          className="btn btn-primary"
+          disabled={loading}
+        >
+          {loading ? 'Registering...' : 'Register'}
+        </button>
       </form>
     </div>
   );

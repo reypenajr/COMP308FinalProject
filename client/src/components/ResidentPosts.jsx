@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { GET_POSTS, GET_POSTS_BY_CATEGORY } from '../graphql/queries';
 
 function ResidentPosts() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const navigate = useNavigate();
   
+  // Check auth on component mount
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
@@ -24,41 +22,20 @@ function ResidentPosts() {
       navigate('/dashboard');
       return;
     }
-    
-    // Fetch posts
-    fetchPosts();
   }, [navigate]);
   
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      let url = 'http://localhost:5000/api/posts';
-      
-      // If a specific category is selected
-      if (selectedCategory !== 'All') {
-        url = `http://localhost:5000/api/posts/category/${selectedCategory}`;
-      }
-      
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      setPosts(response.data);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to fetch posts');
-      setLoading(false);
-      console.error('Error fetching posts:', err);
-    }
-  };
+  // Query selection based on category filter
+  const query = selectedCategory === 'All' ? GET_POSTS : GET_POSTS_BY_CATEGORY;
+  const variables = selectedCategory === 'All' ? {} : { category: selectedCategory };
   
-  // Effect to refetch posts when category changes
-  useEffect(() => {
-    fetchPosts();
-  }, [selectedCategory]);
+  // Use Apollo query
+  const { loading, error, data } = useQuery(query, {
+    variables,
+    fetchPolicy: 'network-only', // Don't use cache for this query
+  });
+  
+  // Get posts from query result
+  const posts = data?.getPosts || data?.getPostsByCategory || [];
 
   return (
     <div className="container mt-4">
@@ -90,13 +67,13 @@ function ResidentPosts() {
       {loading ? (
         <p>Loading posts...</p>
       ) : error ? (
-        <div className="alert alert-danger">{error}</div>
+        <div className="alert alert-danger">{error.message}</div>
       ) : posts.length === 0 ? (
         <p>No posts found. Be the first to create a post!</p>
       ) : (
         <div className="row">
           {posts.map(post => (
-            <div className="col-md-6 mb-4" key={post._id}>
+            <div className="col-md-6 mb-4" key={post.id}>
               <div className={`card ${getCategoryCardClass(post.category)}`}>
                 <div className="card-header d-flex justify-content-between align-items-center">
                   <h5 className="mb-0">{post.title}</h5>
@@ -106,21 +83,21 @@ function ResidentPosts() {
                   <p className="card-text">{post.content}</p>
                   
                   {/* Show emergency-specific info */}
-                  {post.category === 'Emergency Alert' && (
+                  {post.category === 'Emergency Alert' && post.emergency && (
                     <div className="alert alert-danger mt-2">
-                      <strong>Severity: {post.emergency?.severity || 'Medium'}</strong>
+                      <strong>Severity: {post.emergency.severity || 'Medium'}</strong>
                       <p className="mb-0">
-                        Status: {post.emergency?.resolved ? 'Resolved' : 'Active'}
+                        Status: {post.emergency.resolved ? 'Resolved' : 'Active'}
                       </p>
                     </div>
                   )}
                   
                   {/* Show help request-specific info */}
-                  {post.category === 'Help Request' && (
+                  {post.category === 'Help Request' && post.helpRequest && (
                     <div className="alert alert-info mt-2">
-                      <strong>Status: {post.helpRequest?.status || 'Open'}</strong>
+                      <strong>Status: {post.helpRequest.status || 'Open'}</strong>
                       <p className="mb-0">
-                        Volunteers: {post.helpRequest?.volunteers?.length || 0}
+                        Volunteers: {post.helpRequest.volunteers?.length || 0}
                       </p>
                     </div>
                   )}

@@ -1,32 +1,41 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+import { LOGIN_USER } from '../graphql/mutations';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  
+  const [login, { loading }] = useMutation(LOGIN_USER, {
+    onCompleted: (data) => {
+      // Store the token in localStorage
+      localStorage.setItem('token', data.login.token);
+      localStorage.setItem('user', JSON.stringify(data.login.user));
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
+    },
+    onError: (error) => {
+      setError(error.message || 'Login failed');
+      console.error('Login error:', error);
+    }
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password
+      await login({ 
+        variables: { 
+          input: { email, password } 
+        } 
       });
-      
-      // Store the token in localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      // Redirect to dashboard
-      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-      console.error('Login error:', err);
+      // Error is handled in onError callback
     }
   };
 
@@ -55,7 +64,13 @@ function Login() {
             required
           />
         </div>
-        <button type="submit" className="btn btn-primary">Login</button>
+        <button 
+          type="submit" 
+          className="btn btn-primary" 
+          disabled={loading}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+import { CREATE_POST } from '../graphql/mutations';
+import { GET_POSTS } from '../graphql/queries';
 
 function CreatePost() {
   const [title, setTitle] = useState('');
@@ -8,7 +10,6 @@ function CreatePost() {
   const [category, setCategory] = useState('News/Discussion');
   const [severity, setSeverity] = useState('Medium');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -28,15 +29,25 @@ function CreatePost() {
     }
   }, [navigate]);
   
+  const [createPost, { loading }] = useMutation(CREATE_POST, {
+    onCompleted: () => {
+      // Redirect to posts page after successful creation
+      navigate('/posts');
+    },
+    onError: (error) => {
+      setError(error.message || 'Failed to create post');
+      console.error('Error creating post:', error);
+    },
+    refetchQueries: [{ query: GET_POSTS }], // Refresh posts list
+    awaitRefetchQueries: true
+  });
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
-      
-      const postData = {
+      const postInput = {
         title,
         content,
         category
@@ -44,21 +55,14 @@ function CreatePost() {
       
       // Add category-specific data
       if (category === 'Emergency Alert') {
-        postData.severity = severity;
+        postInput.severity = severity;
       }
       
-      await axios.post('http://localhost:5000/api/posts', postData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      await createPost({
+        variables: { input: postInput }
       });
-      
-      // Redirect to posts page after successful creation
-      navigate('/posts');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create post');
-      setLoading(false);
-      console.error('Error creating post:', err);
+      // Error is handled in onError callback
     }
   };
   
