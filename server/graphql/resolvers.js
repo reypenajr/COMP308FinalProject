@@ -22,17 +22,23 @@ const getAuthenticatedUser = async (context) => {
   }
 
   const token = authHeader.split('Bearer ')[1];
+  console.log('Verifying token:', token ? 'Token provided' : 'No token');
   
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token decoded successfully, user ID:', decoded.id);
+    
     const user = await User.findById(decoded.id);
     
     if (!user) {
+      console.error('User not found for ID:', decoded.id);
       throw new Error('User not found');
     }
     
+    console.log('User authenticated:', user.firstName, user.lastName, user.role);
     return user;
   } catch (err) {
+    console.error('Token verification failed:', err.message);
     throw new AuthenticationError('Invalid/Expired token');
   }
 };
@@ -65,7 +71,9 @@ const resolvers = {
         const posts = await Post.find().sort({ createdAt: -1 });
         return posts.map(post => ({
           id: post._id,
-          ...post._doc
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
         }));
       } catch (err) {
         throw new Error('Error fetching posts');
@@ -78,7 +86,9 @@ const resolvers = {
         const posts = await Post.find({ category }).sort({ createdAt: -1 });
         return posts.map(post => ({
           id: post._id,
-          ...post._doc
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
         }));
       } catch (err) {
         throw new Error('Error fetching posts by category');
@@ -94,7 +104,9 @@ const resolvers = {
         }
         return {
           id: post._id,
-          ...post._doc
+          ...post._doc,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
         };
       } catch (err) {
         throw new Error('Error fetching post');
@@ -196,16 +208,10 @@ const resolvers = {
         
         await post.save();
         
+        // Let the Post.author resolver handle author fetching
         return {
           id: post._id,
-          ...post._doc,
-          author: {
-            id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role
-          }
+          ...post._doc
         };
       } catch (err) {
         throw new Error('Error creating post: ' + err.message);
@@ -339,7 +345,17 @@ const resolvers = {
     // Resolve author field with full User data
     author: async (parent) => {
       try {
-        const user = await User.findById(parent.author);
+        // Make sure we're using a string ID
+        const authorId = parent.author.toString();
+        console.log('Fetching author with ID:', authorId);
+        
+        const user = await User.findById(authorId);
+        
+        if (!user) {
+          console.error('User not found with ID:', authorId);
+          throw new Error('Author not found');
+        }
+        
         return {
           id: user._id,
           firstName: user.firstName,
@@ -349,6 +365,7 @@ const resolvers = {
           createdAt: user.createdAt
         };
       } catch (err) {
+        console.error('Error fetching author data:', err);
         throw new Error('Error fetching author data');
       }
     }

@@ -103,7 +103,11 @@ function ResidentPosts() {
                   )}
                 </div>
                 <div className="card-footer text-muted">
-                  <small>Posted by {post.authorName} on {new Date(post.createdAt).toLocaleDateString()}</small>
+                  <small>
+                    Posted by {post.authorName} on {
+                      post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Unknown date'
+                    }
+                  </small>
                 </div>
               </div>
             </div>
