@@ -109,3 +109,10 @@ export const VOLUNTEER_FOR_HELP_REQUEST = gql`
     }
   }
 `;
+
+//business post(new)
+export const ANALYZE_SENTIMENT = gql`
+  mutation AnalyzeSentiment($text: String!) {
+    analyzeSentiment(text: $text)
+  }
+`;
